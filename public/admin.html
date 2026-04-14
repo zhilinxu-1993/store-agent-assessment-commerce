@@ -7,27 +7,40 @@
   <link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
-  <div class="admin-header">
-    <div class="container">
-      <h1>⚙️ Admin Control Panel</h1>
-      <nav>
-        <a href="/">View Store</a>
-      </nav>
+  <div class="site-header">
+    <div class="admin-header">
+      <div class="container">
+        <h1>⚙️ Admin Control Panel</h1>
+        <nav>
+          <a href="/">View Store</a>
+        </nav>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <div class="container">
+        <button class="tab-btn active" data-tab="orders">Orders</button>
+        <button class="tab-btn" data-tab="products">Products</button>
+        <button class="tab-btn" data-tab="ai">AI Assistant</button>
+      </div>
     </div>
   </div>
 
-  <div class="container">
-    <div class="admin-content">
-      <!-- Recent Orders Section -->
-      <section class="section">
+  <!-- Orders tab -->
+  <div class="tab-panel active" id="tab-orders">
+    <div class="container">
+      <div class="section">
         <h2>Recent Orders</h2>
         <div id="orders-loading" class="loading">Loading orders...</div>
         <div id="orders-error" class="error" style="display: none;"></div>
         <div id="orders-list" class="orders-list"></div>
-      </section>
+      </div>
+    </div>
+  </div>
 
-      <!-- Products Section -->
-      <section class="section">
+  <!-- Products tab -->
+  <div class="tab-panel" id="tab-products">
+    <div class="container">
+      <div class="section">
         <h2>Products</h2>
         <div class="products-controls">
           <input type="text" id="product-search" placeholder="Search products..." class="search-input">
@@ -36,7 +49,24 @@
         <div id="products-loading" class="loading">Loading products...</div>
         <div id="products-error" class="error" style="display: none;"></div>
         <div id="products-list" class="products-list"></div>
-      </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant tab -->
+  <div class="tab-panel" id="tab-ai">
+    <div class="chat-fullpage">
+      <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+      <form id="chat-form" class="chat-input-row" autocomplete="off">
+        <input
+          type="text"
+          id="chat-input"
+          class="chat-input"
+          placeholder='Try: "Show pending orders" or "Cancel order ORD-1001"'
+          aria-label="Message the AI assistant"
+        />
+        <button type="submit" id="chat-send" class="btn btn-primary">Send</button>
+      </form>
     </div>
   </div>
 
@@ -95,24 +125,7 @@
     </div>
   </div>
 
-  <!-- AI Assistant Chat Panel -->
-  <div class="container">
-    <section class="section chat-section">
-      <h2>AI Assistant</h2>
-      <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
-      <form id="chat-form" class="chat-input-row" autocomplete="off">
-        <input
-          type="text"
-          id="chat-input"
-          class="chat-input"
-          placeholder='Try: "Cancel order ORD-1001" or "Set price of SKU-001 to $49.99"'
-          aria-label="Message the AI assistant"
-        />
-        <button type="submit" id="chat-send" class="btn btn-primary">Send</button>
-      </form>
-    </section>
-  </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="/admin/admin.js"></script>
 </body>
 </html>

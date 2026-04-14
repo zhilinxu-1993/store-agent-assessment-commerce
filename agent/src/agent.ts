@@ -33,7 +33,13 @@ Guidelines:
 - Always confirm successful changes concisely.
 - If an API call returns an error field, explain it clearly and suggest next steps.
 - Validate that prices are non-negative before updating.
-- Be concise: one short paragraph per response unless a list is genuinely helpful.`;
+- Be concise. Keep responses short — 1 to 3 sentences or a tight list.
+- When listing orders or products, put each item on ONE line with key info inline.
+  Example: "**ORD-1008** · bob.wilson@example.com · $1,003.55 (pending)"
+  Never use multi-line blocks per item. Never add blank lines between list items.
+- When showing order details, use a single compact block, not a labelled list.
+  Example: "**ORD-1009** — Alice Johnson · Confirmed · $765.96 · 2 items"
+- Never add blank lines between consecutive lines of information.`;
 
 export const storeAgent = new LlmAgent({
   name: 'store_admin_agent',

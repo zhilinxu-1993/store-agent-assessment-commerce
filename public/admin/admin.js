@@ -239,6 +239,16 @@ function escapeHtml(text) {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
   // Load initial data
   loadRecentOrders();
   loadProducts();
@@ -308,7 +318,13 @@ function appendBubble(role, text) {
   const messages = document.getElementById('chat-messages');
   const bubble = document.createElement('div');
   bubble.className = `chat-bubble ${role}`;
-  bubble.textContent = text;
+  if (role === 'assistant' && typeof marked !== 'undefined') {
+    // Collapse all blank lines — the content structure provides visual separation
+    const normalized = text.trim().replace(/\n{2,}/g, '\n');
+    bubble.innerHTML = marked.parse(normalized);
+  } else {
+    bubble.textContent = text;
+  }
   messages.appendChild(bubble);
   messages.scrollTop = messages.scrollHeight;
   return bubble;
