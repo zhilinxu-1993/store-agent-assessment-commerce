@@ -32,32 +32,56 @@ Browser (Admin UI)
 ### Prerequisites
 
 - Node.js 18+
-- Homebrew (macOS)
+- Python 3
+- macOS: Homebrew
+- Linux: `curl`, `unzip` (usually pre-installed)
+- Windows: PowerShell 5.1+, `winget` (built into Windows 10 1709+)
 
 ### One-time setup
 
+**macOS / Linux**
 ```bash
 ./setup.sh
 ```
 
+**Windows (PowerShell — run as Administrator)**
+```powershell
+.\setup.ps1
+```
+
 This script:
-1. Verifies Node.js 18+
-2. Installs `llama.cpp` via Homebrew
+1. Verifies Node.js 18+ (installs via winget on Windows if missing)
+2. Installs `llama-server`:
+   - macOS: via Homebrew (`llama.cpp`)
+   - Linux: downloads the pre-built binary from the latest llama.cpp GitHub release into `./bin/`
+   - Windows: downloads `llama-server.exe` from the latest llama.cpp GitHub release into `.\bin\`
 3. Downloads the Qwen3 8b model (~5.2 GB) via Ollama
 4. Runs `npm install` for both the store backend and agent service
 
 ### Start all services
 
+**macOS / Linux**
 ```bash
 ./start.sh
+```
+
+**Windows**
+```powershell
+.\start.ps1
 ```
 
 Then open: **http://localhost:3000/admin**
 
 ### Stop all services
 
+**macOS / Linux**
 ```bash
 ./stop.sh
+```
+
+**Windows**
+```powershell
+.\stop.ps1
 ```
 
 ---
@@ -106,9 +130,12 @@ Valid order statuses: `pending`, `confirmed`, `processing`, `on_hold`, `shipped`
 │   │       └── agent.test.ts
 │   ├── package.json
 │   └── tsconfig.json
-├── setup.sh               # One-time dependency + model setup
-├── start.sh               # Start all three services
-└── stop.sh                # Stop all three services
+├── setup.sh               # One-time setup (macOS + Linux)
+├── setup.ps1              # One-time setup (Windows)
+├── start.sh               # Start all three services (macOS + Linux)
+├── start.ps1              # Start all three services (Windows)
+├── stop.sh                # Stop all three services (macOS + Linux)
+└── stop.ps1               # Stop all three services (Windows)
 ```
 
 ---
