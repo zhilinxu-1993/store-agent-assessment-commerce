@@ -1,240 +1,146 @@
-# AI Agent Engineering Assessment
+# Store Admin Agent — Implementation
 
-## Overview
-
-This project simulates a simplified e-commerce platform and asks you to build a **natural-language AI agent** that assists a store administrator in managing orders and products.
-
-You are provided with:
-- A running **storefront UI** (customer-facing)
-- An **admin UI** for viewing and managing store data
-- A fully functional **backend API**
-
-Your task is to:
-1. Implement a **chatbot embedded in the admin UI**
-2. Implement a **backend agent service** that the chatbot communicates with
-3. Enable the agent to interpret natural language requests and make authorized changes via backend APIs
-
-This assessment is designed to evaluate how you design, implement, and reason about AI agents in a realistic product environment.
+A natural-language AI assistant embedded in an e-commerce admin dashboard. The agent interprets plain-English requests and executes order and product management operations via the store's REST API.
 
 ---
 
-## Application Structure
+## Architecture
 
-After setup, the application exposes three primary surfaces:
+```
+Browser (Admin UI)
+  └─ POST /chat ──→ Agent Service (Express, :3001)
+                        └─ Google ADK LlmAgent
+                              ├─ OllamaLlm (llama-server, :11435)
+                              │    └─ Qwen3 8b (GGUF, llama.cpp)
+                              └─ Tool functions
+                                    └─ GET/POST/PUT :3000/api
+                                              Store Backend
+```
 
-### 1. Storefront (Customer View)
-- URL: `http://localhost:3000/`
-- Read-only storefront for browsing products
-- Included for realism and data generation
+**Three processes run concurrently:**
 
-### 2. Admin Dashboard
-- URL: `http://localhost:3000/admin`
-- Displays:
-    - Recent orders
-    - Product catalog
-- Allows:
-    - Updating order status
-    - Editing product details (name, description, price)
-
-You will extend this page by embedding a **chatbot interface** that allows an administrator to manage the store using natural language.
-
-### 3. Backend API
-- Base URL: `http://localhost:3000/api`
-- Full API documentation available at `http://localhost:3000/api`
+| Service | Port | Description |
+|---|---|---|
+| Store backend | 3000 | Express API + admin UI (provided) |
+| Agent service | 3001 | ADK chat endpoint (implemented) |
+| llama-server | 11435 | LLM inference (llama.cpp) |
 
 ---
 
-## Getting Started
+## Setup
 
 ### Prerequisites
-- Node.js 18+
-- npm or yarn
-- Ollama installed locally
 
-### Setup
+- Node.js 18+
+- Homebrew (macOS)
+
+### One-time setup
 
 ```bash
-npm install
-npm run dev
+./setup.sh
 ```
 
-The application runs at `http://localhost:3000`.
+This script:
+1. Verifies Node.js 18+
+2. Installs `llama.cpp` via Homebrew
+3. Downloads the Qwen3 8b model (~5.2 GB) via Ollama
+4. Runs `npm install` for both the store backend and agent service
 
----
+### Start all services
 
-## Your Task
-
-### High-Level Goals
-
-You will implement:
-
-1. **A simple chatbot UI embedded in the admin page**
-2. **A backend agent service**
-3. **Agent logic** that translates natural language into API actions
-
-The focus is on correctness, clarity, and sound engineering judgment - not UI polish or exhaustive feature coverage.
-
----
-
-## Chatbot UI Requirements
-
-### Location
-- Embedded directly on the **admin page** (`/admin`)
-
-### Implementation
-- Use an off-the-shelf chatbot UI library  
-  **Suggested:** https://ai-sdk.dev/docs/ai-sdk-ui/overview
-
-### Responsibilities
-- Accept natural language input from an admin user
-- Display conversational responses
-- Show confirmations, summaries, and error messages
-- Communicate with your agent service via HTTP (or similar)
-
----
-
-## Agent Service Requirements
-
-### Framework
-- **Required:** Google Agent Development Kit (ADK) for TypeScript  
-  https://google.github.io/adk-docs/get-started/
-
-### LLM Provider
-- **Required:** Ollama
-- Choose any Qwen3 model up to 30b parameters
-
-### Responsibilities
-The agent service should:
-- Accept natural language requests from the chatbot
-- Maintain short-term conversational context
-- Decide when and how to call backend APIs
-- Execute actions safely and deterministically
-- Return clear, human-readable responses
-
----
-
-## Required Agent Capabilities
-
-### Orders
-- Change order status (e.g., pending → shipped → cancelled)
-- Validate order existence and transitions
-- Handle errors gracefully and explain outcomes
-
-Example:
-```
-"Cancel order ORD-1043"
+```bash
+./start.sh
 ```
 
-### Products
-- Update product description
-- Update product price
-- Validate inputs (e.g., non-negative prices)
+Then open: **http://localhost:3000/admin**
 
-Example:
-```
-"Change the price of SKU-001 to $49.99"
+### Stop all services
+
+```bash
+./stop.sh
 ```
 
-You are not required to support every API endpoint. Depth and correctness matter more than breadth.
+---
+
+## Agent capabilities
+
+### Order management
+
+| Tool | Description |
+|---|---|
+| `list_orders` | List orders, optionally filtered by status |
+| `get_order` | Look up a single order by ID or order number (e.g. `ORD-1001`) |
+| `update_order_status` | Transition an order to a new status with optional reason |
+
+Valid order statuses: `pending`, `confirmed`, `processing`, `on_hold`, `shipped`, `partially_shipped`, `delivered`, `completed`, `cancelled`, `refunded`, `partially_refunded`
+
+### Product management
+
+| Tool | Description |
+|---|---|
+| `list_products` | List products with optional keyword search |
+| `get_product` | Fetch full product details including variants |
+| `update_product` | Update product name and/or description |
+| `update_product_price` | Update the price of the default (or specified) variant |
 
 ---
 
-## Architecture Expectations
-
-A typical interaction flow:
+## Project structure
 
 ```
-Admin UI (Chatbot)
-   ↓
-Agent Service (ADK)
-   ↓
-Backend API (/api)
+.
+├── server.js              # Store backend entry point (provided)
+├── public/admin/          # Admin UI (extended with chat panel)
+│   ├── admin.html
+│   ├── admin.css
+│   └── admin.js
+├── agent/                 # Agent service (implemented)
+│   ├── src/
+│   │   ├── index.ts       # Express server — POST /chat
+│   │   ├── agent.ts       # ADK LlmAgent definition
+│   │   ├── tools.ts       # Tool handler functions
+│   │   ├── ollama-llm.ts  # BaseLlm adapter for llama-server
+│   │   ├── api-client.ts  # Typed HTTP client for store API
+│   │   └── __tests__/
+│   │       ├── tools.test.ts
+│   │       └── agent.test.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── setup.sh               # One-time dependency + model setup
+├── start.sh               # Start all three services
+└── stop.sh                # Stop all three services
 ```
 
-We will evaluate:
-- Separation of concerns
-- Tool definitions and usage
-- Error handling and recovery
-- Code structure and readability
+---
+
+## Running tests
+
+```bash
+cd agent
+npm test
+```
+
+Tests mock the HTTP client and ADK internals — no running services required.
 
 ---
 
-## AI Coding Tools
+## Design decisions
 
-You may use AI-assisted coding tools (e.g., Copilot, Cursor, ChatGPT).
+**Google ADK over raw LLM calls** — ADK's `LlmAgent` handles tool-call/tool-result turns automatically, keeping `index.ts` to a thin HTTP wrapper. The agent loop retries until it produces a final response.
 
-However:
-- You are expected to **fully understand the code**
-- You must be able to explain:
-    - Design decisions
-    - Agent behavior
-    - Tradeoffs and limitations
+**llama-server over Ollama's native HTTP API** — llama.cpp's OpenAI-compatible `/v1/chat/completions` endpoint is well-specified; Ollama's `/api/chat` format is slightly different. Using llama-server directly avoids an extra translation layer.
 
-We will discuss this during the review.
+**`OllamaLlm` adapter** — ADK is built for Gemini and expects Google's `Content` format internally. The adapter translates ADK's `Content[]` → OpenAI messages and maps Gemini schema types (`"OBJECT"`) to JSON Schema (`"object"`). It also sets `chat_template_kwargs: { thinking: false }` to suppress Qwen3's chain-of-thought reasoning tokens, which would otherwise appear verbatim in responses.
 
----
+**Session reuse** — The `/chat` endpoint accepts an optional `sessionId` and reuses an existing `InMemorySessionService` session when one is provided, giving the agent multi-turn conversational memory within a browser session.
 
-## Engineering Best Practices Expectations
-
-### Version Control & Commits
-- Make small, logical commits
-- Write clear, descriptive commit messages
-- Avoid large or unrelated commits
-- Your commit history should tell a coherent story
-
-We will review commit history as part of the evaluation.
-
-### Unit Testing
-- Provide unit tests for core agent logic
-- Test intent handling, validation, and error paths
-- Mock or stub external dependencies (LLMs, APIs)
-- Favor meaningful behavior tests over raw coverage
+**Tool-side validation** — Status values and prices are validated in the tool handlers (before the API call) rather than relying on API error messages. This lets the agent return a clear error immediately without a round-trip.
 
 ---
 
-## Time & Scope Guidance
+## Known limitations
 
-Expected effort: **4–6 hours**.
-
-You are **not expected** to:
-- Build a production-ready system
-- Implement every possible workflow
-- Perfect the UI
-
-We are interested in:
-- Sound architecture
-- Clear reasoning
-- Thoughtful tradeoffs
-
----
-
-## Submission Guidelines
-
-Please include:
-1. **Source Code with git history**
-2. **Updated README**
-    - Setup instructions
-    - Architecture overview
-    - Known limitations
-3. **Tests**
-4. **Demo**
-    - Live runnable project **or**
-    - Short recorded walkthrough
-
----
-
-## Evaluation Criteria
-
-We will evaluate:
-
-1. Agent design and reasoning
-2. API integration correctness
-3. Error handling and recovery
-4. Code quality and test coverage
-5. Communication and engineering judgment
-
----
-
-If you have questions about expected behavior or constraints, please reach out to your hiring contact.
-
-Good luck - we’re excited to see how you approach this.
+- Sessions are in-memory only — restarting the agent service clears all conversation history.
+- The LLM occasionally hallucinates product or order IDs. The system prompt instructs the agent to look up identifiers first, but this isn't enforced mechanically.
+- `update_product_price` always targets the default variant when no `variantId` is supplied; there is no tool for listing or selecting non-default variants.
+- llama-server startup (~30–60 s on CPU) is the dominant latency at boot. Subsequent inference is faster once the model is loaded.
