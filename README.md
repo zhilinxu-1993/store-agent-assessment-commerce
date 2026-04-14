@@ -171,3 +171,7 @@ Tests mock the HTTP client and ADK internals — no running services required.
 - The LLM occasionally hallucinates product or order IDs. The system prompt instructs the agent to look up identifiers first, but this isn't enforced mechanically.
 - `update_product_price` always targets the default variant when no `variantId` is supplied; there is no tool for listing or selecting non-default variants.
 - llama-server startup (~30–60 s on CPU) is the dominant latency at boot. Subsequent inference is faster once the model is loaded.
+
+
+##Demo Video
+https://drive.google.com/file/d/1vGPh93M7yjogCwAZsxSOVMbfmAhTLsyD/view?usp=sharing
