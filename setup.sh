@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # setup.sh — one-time setup for the store admin agent project.
-# Installs all dependencies and downloads the LLM model.
+# Supports macOS (Homebrew) and Linux (apt / dnf / pacman / yum).
 # Run once before using start.sh.
 
 set -e
@@ -16,41 +16,91 @@ ok()   { echo -e "${GREEN}[setup]${NC} ✓ $1"; }
 warn() { echo -e "${YELLOW}[setup]${NC} ⚠ $1"; }
 fail() { echo -e "${RED}[setup]${NC} ✗ $1"; exit 1; }
 
+OS="$(uname -s)"
+
+# ── Prerequisites ────────────────────────────────────────────────────────────
 log "Checking prerequisites..."
 command -v node >/dev/null 2>&1 || fail "Node.js is required. Install from https://nodejs.org (v18+)"
 command -v npm  >/dev/null 2>&1 || fail "npm is required."
-command -v brew >/dev/null 2>&1 || fail "Homebrew is required. Install from https://brew.sh"
+command -v python3 >/dev/null 2>&1 || fail "python3 is required."
 NODE_VER=$(node -e "process.exit(parseInt(process.versions.node) < 18 ? 1 : 0)" 2>/dev/null && echo ok || echo fail)
 [ "$NODE_VER" = "fail" ] && fail "Node.js 18+ required. Current: $(node --version)"
 ok "Node $(node --version), npm $(npm --version)"
 
-log "Installing llama.cpp (inference runtime)..."
-if brew list llama.cpp >/dev/null 2>&1; then
+# ── llama-server ─────────────────────────────────────────────────────────────
+if [ "$OS" = "Darwin" ]; then
+  command -v brew >/dev/null 2>&1 || fail "Homebrew is required on macOS. Install from https://brew.sh"
+  log "Installing llama.cpp (inference runtime)..."
+  if brew list llama.cpp >/dev/null 2>&1; then
     ok "llama.cpp already installed ($(brew list --versions llama.cpp))"
-else
+  else
     brew install llama.cpp
     ok "llama.cpp installed"
+  fi
+  LLAMA_SERVER_BIN="llama-server"
+
+elif [ "$OS" = "Linux" ]; then
+  LLAMA_BIN_DIR="$(pwd)/bin"
+  LLAMA_SERVER_BIN="$LLAMA_BIN_DIR/llama-server"
+
+  if [ -x "$LLAMA_SERVER_BIN" ]; then
+    ok "llama-server already present at $LLAMA_SERVER_BIN"
+  else
+    log "Downloading llama-server binary for Linux x64..."
+    mkdir -p "$LLAMA_BIN_DIR"
+
+    # Resolve latest release asset URL via GitHub API
+    ASSET_URL=$(curl -fsSL "https://api.github.com/repos/ggml-org/llama.cpp/releases/latest" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for a in data.get('assets', []):
+    n = a['name']
+    if 'ubuntu' in n and 'x64' in n and n.endswith('.zip'):
+        print(a['browser_download_url'])
+        break
+")
+    [ -z "$ASSET_URL" ] && fail "Could not find a Linux x64 llama.cpp release asset. Check https://github.com/ggml-org/llama.cpp/releases"
+
+    TMP_ZIP="$(mktemp /tmp/llama-linux-XXXX.zip)"
+    curl -fSL --progress-bar "$ASSET_URL" -o "$TMP_ZIP"
+    unzip -jq "$TMP_ZIP" "*/llama-server" -d "$LLAMA_BIN_DIR"
+    rm "$TMP_ZIP"
+    chmod +x "$LLAMA_SERVER_BIN"
+    ok "llama-server installed at $LLAMA_SERVER_BIN"
+  fi
+
+  # Store the path so start.sh can find it
+  echo "$LLAMA_SERVER_BIN" > .llama-server-path
+else
+  fail "Unsupported OS: $OS. Use setup.ps1 on Windows."
 fi
 
-log "Checking for Qwen3 8b model..."
+# ── Ollama + Qwen3 8b model ──────────────────────────────────────────────────
 MODEL_MANIFEST="$HOME/.ollama/models/manifests/registry.ollama.ai/library/qwen3/8b"
 
 if [ -f "$MODEL_MANIFEST" ]; then
-    ok "Qwen3 8b model already downloaded"
+  ok "Qwen3 8b model already downloaded"
 else
-    log "Downloading Qwen3 8b model via Ollama (5.2 GB — this will take a while)..."
-    if ! command -v ollama >/dev/null 2>&1; then
-        log "Installing Ollama (needed for model download)..."
-        brew install ollama
+  log "Downloading Qwen3 8b model via Ollama (5.2 GB — this will take a while)..."
+
+  if ! command -v ollama >/dev/null 2>&1; then
+    if [ "$OS" = "Darwin" ]; then
+      brew install ollama
+    else
+      log "Installing Ollama..."
+      curl -fsSL https://ollama.com/install.sh | sh
     fi
-    ollama serve &>/tmp/ollama-setup.log &
-    OLLAMA_PID=$!
-    sleep 3
-    ollama pull qwen3:8b
-    kill $OLLAMA_PID 2>/dev/null || true
-    ok "Qwen3 8b downloaded"
+  fi
+
+  ollama serve &>/tmp/ollama-setup.log &
+  OLLAMA_PID=$!
+  sleep 3
+  ollama pull qwen3:8b
+  kill $OLLAMA_PID 2>/dev/null || true
+  ok "Qwen3 8b downloaded"
 fi
 
+# ── Verify model blob ────────────────────────────────────────────────────────
 BLOB_HASH=$(python3 -c "
 import json, sys
 with open('$MODEL_MANIFEST') as f:
@@ -64,6 +114,7 @@ GGUF_PATH="$HOME/.ollama/models/blobs/$BLOB_HASH"
 [ -f "$GGUF_PATH" ] || fail "Model file not found at $GGUF_PATH"
 ok "Model file verified: $GGUF_PATH"
 
+# ── npm dependencies ─────────────────────────────────────────────────────────
 log "Installing store backend dependencies..."
 npm install
 ok "Store backend dependencies installed"
