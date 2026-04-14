@@ -51,12 +51,22 @@ export async function getOrder(params: { identifier: string }): Promise<unknown>
   }
 }
 
+const VALID_ORDER_STATUSES = [
+  'pending', 'confirmed', 'processing', 'on_hold', 'shipped',
+  'partially_shipped', 'delivered', 'completed', 'cancelled',
+  'refunded', 'partially_refunded',
+] as const;
+
 export async function updateOrderStatus(params: {
   orderId: string;
   status: string;
   reason?: string;
 }): Promise<unknown> {
   const { orderId, status, reason } = params;
+
+  if (!(VALID_ORDER_STATUSES as readonly string[]).includes(status)) {
+    return { error: `Invalid status "${status}". Valid: ${VALID_ORDER_STATUSES.join(', ')}` };
+  }
 
   try {
     const body: Record<string, string> = { status };
