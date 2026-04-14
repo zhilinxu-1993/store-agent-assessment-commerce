@@ -79,6 +79,91 @@ export async function updateOrderStatus(params: {
 }
 
 // ---------------------------------------------------------------------------
+// Product handlers
+// ---------------------------------------------------------------------------
+
+export async function listProducts(params: {
+  search?: string;
+  limit?: number;
+}): Promise<unknown> {
+  const { search, limit = 20 } = params;
+  const url = `/products?limit=${limit}&sortBy=name&sortOrder=asc${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+
+  try {
+    const data = await apiClient.get<{ data: unknown[] }>(url);
+    const products = (data as { data?: unknown[] }).data ?? data;
+    return { products };
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+export async function getProduct(params: { productId: string }): Promise<unknown> {
+  try {
+    const product = await apiClient.get(`/products/${encodeURIComponent(params.productId)}`);
+    return { product };
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+export async function updateProduct(params: {
+  productId: string;
+  name?: string;
+  description?: string;
+}): Promise<unknown> {
+  const { productId, name, description } = params;
+
+  if (!name && !description) {
+    return { error: 'Provide at least one of: name, description' };
+  }
+
+  const body: Record<string, string> = {};
+  if (name) body.name = name;
+  if (description) body.description = description;
+
+  try {
+    const product = await apiClient.put(`/products/${encodeURIComponent(productId)}`, body);
+    return { success: true, product };
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+export async function updateProductPrice(params: {
+  productId: string;
+  price: number;
+  variantId?: string;
+}): Promise<unknown> {
+  const { productId, price, variantId } = params;
+
+  if (typeof price !== 'number' || price < 0) {
+    return { error: 'Price must be a non-negative number' };
+  }
+
+  try {
+    let resolvedVariantId = variantId;
+    if (!resolvedVariantId) {
+      const productData = await apiClient.get<{
+        variants: Array<{ id: string; isDefault: boolean }>;
+      }>(`/products/${encodeURIComponent(productId)}`);
+      const variants = (productData as { variants: Array<{ id: string; isDefault: boolean }> }).variants;
+      const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
+      if (!defaultVariant) return { error: 'Product has no variants' };
+      resolvedVariantId = defaultVariant.id;
+    }
+
+    const variant = await apiClient.put(
+      `/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(resolvedVariantId)}`,
+      { price },
+    );
+    return { success: true, variant };
+  } catch (err) {
+    return apiError(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // ADK FunctionTool definitions (orders)
 // ---------------------------------------------------------------------------
 
@@ -114,5 +199,46 @@ export const tools: FunctionTool[] = [
       reason: z.string().optional().describe('Optional reason for the change'),
     }),
     execute: updateOrderStatus,
+  }),
+
+  new FunctionTool({
+    name: 'list_products',
+    description: 'List products, optionally filtering by a search term.',
+    parameters: z.object({
+      search: z.string().optional().describe('Search term to filter products by name'),
+      limit: z.number().optional().describe('Maximum number of products to return (default 20)'),
+    }),
+    execute: listProducts,
+  }),
+
+  new FunctionTool({
+    name: 'get_product',
+    description: 'Retrieve full details of a single product by its UUID.',
+    parameters: z.object({
+      productId: z.string().describe('The product UUID'),
+    }),
+    execute: getProduct,
+  }),
+
+  new FunctionTool({
+    name: 'update_product',
+    description: "Update a product's name and/or description.",
+    parameters: z.object({
+      productId: z.string().describe('The product UUID'),
+      name: z.string().optional().describe('New product name'),
+      description: z.string().optional().describe('New product description'),
+    }),
+    execute: updateProduct,
+  }),
+
+  new FunctionTool({
+    name: 'update_product_price',
+    description: "Update the price of a product's default variant (or a specific variant if variantId is supplied).",
+    parameters: z.object({
+      productId: z.string().describe('The product UUID'),
+      price: z.number().describe('New price (must be >= 0)'),
+      variantId: z.string().optional().describe('Optional variant UUID; defaults to the product default variant'),
+    }),
+    execute: updateProductPrice,
   }),
 ];
