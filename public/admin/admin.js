@@ -364,8 +364,12 @@ async function sendChatMessage(message) {
   }
 }
 
-document.getElementById('chat-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const input = document.getElementById('chat-input');
-  sendChatMessage(input.value);
+document.addEventListener('DOMContentLoaded', () => {
+  appendBubble('assistant', 'Hi! I can help you manage orders and products. Try:\n• "Cancel order ORD-1001"\n• "Change the price of product [ID] to $49.99"\n• "Show me all pending orders"');
+
+  document.getElementById('chat-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    sendChatMessage(input.value);
+  });
 });
