@@ -317,22 +317,46 @@ function appendBubble(role, text) {
 async function sendChatMessage(message) {
   if (!message.trim()) return;
 
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+
+  input.value = '';
+  input.disabled = true;
+  sendBtn.disabled = true;
+
   appendBubble('user', message);
+  const thinkingBubble = appendBubble('thinking', 'Thinking…');
 
-  const response = await fetch(`${AGENT_URL}/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message, sessionId: chatSessionId }),
-  });
+  try {
+    const response = await fetch(`${AGENT_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, sessionId: chatSessionId }),
+    });
 
-  const data = await response.json();
-  chatSessionId = data.sessionId;
-  appendBubble('assistant', data.reply || '(no response)');
+    thinkingBubble.remove();
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      appendBubble('error', err.error ?? `Agent error (HTTP ${response.status})`);
+      return;
+    }
+
+    const data = await response.json();
+    chatSessionId = data.sessionId;
+    appendBubble('assistant', data.reply || '(no response)');
+  } catch (err) {
+    thinkingBubble.remove();
+    appendBubble('error', `Could not reach agent service. Is it running on port 3001?\n(${err.message})`);
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
 }
 
 document.getElementById('chat-form').addEventListener('submit', (e) => {
   e.preventDefault();
   const input = document.getElementById('chat-input');
   sendChatMessage(input.value);
-  input.value = '';
 });
