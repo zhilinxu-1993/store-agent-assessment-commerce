@@ -296,3 +296,43 @@ async function updateOrderStatus(orderId, newStatus) {
 // Make functions available globally
 window.editProduct = editProduct;
 window.updateOrderStatus = updateOrderStatus;
+
+// ---------------------------------------------------------------------------
+// AI Assistant chat
+// ---------------------------------------------------------------------------
+
+const AGENT_URL = 'http://localhost:3001';
+let chatSessionId = null;
+
+function appendBubble(role, text) {
+  const messages = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}`;
+  bubble.textContent = text;
+  messages.appendChild(bubble);
+  messages.scrollTop = messages.scrollHeight;
+  return bubble;
+}
+
+async function sendChatMessage(message) {
+  if (!message.trim()) return;
+
+  appendBubble('user', message);
+
+  const response = await fetch(`${AGENT_URL}/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, sessionId: chatSessionId }),
+  });
+
+  const data = await response.json();
+  chatSessionId = data.sessionId;
+  appendBubble('assistant', data.reply || '(no response)');
+}
+
+document.getElementById('chat-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  sendChatMessage(input.value);
+  input.value = '';
+});
