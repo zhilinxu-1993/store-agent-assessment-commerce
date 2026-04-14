@@ -95,6 +95,24 @@
     </div>
   </div>
 
+  <!-- AI Assistant Chat Panel -->
+  <div class="container">
+    <section class="section chat-section">
+      <h2>AI Assistant</h2>
+      <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+      <form id="chat-form" class="chat-input-row" autocomplete="off">
+        <input
+          type="text"
+          id="chat-input"
+          class="chat-input"
+          placeholder='Try: "Cancel order ORD-1001" or "Set price of SKU-001 to $49.99"'
+          aria-label="Message the AI assistant"
+        />
+        <button type="submit" id="chat-send" class="btn btn-primary">Send</button>
+      </form>
+    </section>
+  </div>
+
   <script src="/admin/admin.js"></script>
 </body>
 </html>
