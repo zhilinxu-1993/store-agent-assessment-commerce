@@ -345,6 +345,15 @@ async function sendChatMessage(message) {
     const data = await response.json();
     chatSessionId = data.sessionId;
     appendBubble('assistant', data.reply || '(no response)');
+
+    // Reload store data if the agent likely changed something
+    const lower = message.toLowerCase();
+    if (lower.includes('order') || lower.includes('status') || lower.includes('cancel')) {
+      loadRecentOrders();
+    }
+    if (lower.includes('product') || lower.includes('price') || lower.includes('description')) {
+      loadProducts(document.getElementById('product-search').value);
+    }
   } catch (err) {
     thinkingBubble.remove();
     appendBubble('error', `Could not reach agent service. Is it running on port 3001?\n(${err.message})`);
