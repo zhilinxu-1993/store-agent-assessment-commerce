@@ -26,10 +26,11 @@ export async function listOrders(params: {
   limit?: number;
 }): Promise<unknown> {
   const { status, limit = 10 } = params;
-  const url = `/orders?limit=${limit}&sortBy=createdAt&sortOrder=desc${status ? `&status=${status}` : ''}`;
+  const qs = new URLSearchParams({ limit: String(limit), sortBy: 'createdAt', sortOrder: 'desc' });
+  if (status) qs.set('status', status);
 
   try {
-    const data = await apiClient.get<{ data: unknown[] }>(url);
+    const data = await apiClient.get<{ data: unknown[] }>(`/orders?${qs}`);
     const orders = (data as { data?: unknown[] }).data ?? data;
     return { orders };
   } catch (err) {
@@ -87,10 +88,11 @@ export async function listProducts(params: {
   limit?: number;
 }): Promise<unknown> {
   const { search, limit = 20 } = params;
-  const url = `/products?limit=${limit}&sortBy=name&sortOrder=asc${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+  const qs = new URLSearchParams({ limit: String(limit), sortBy: 'name', sortOrder: 'asc' });
+  if (search) qs.set('search', search);
 
   try {
-    const data = await apiClient.get<{ data: unknown[] }>(url);
+    const data = await apiClient.get<{ data: unknown[] }>(`/products?${qs}`);
     const products = (data as { data?: unknown[] }).data ?? data;
     return { products };
   } catch (err) {
