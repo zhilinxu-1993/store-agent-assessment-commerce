@@ -37,6 +37,7 @@ const runner = new Runner({
 
 interface ChatRequest {
   message: string;
+  sessionId?: string;
 }
 
 interface ChatResponse {
@@ -45,7 +46,7 @@ interface ChatResponse {
 }
 
 app.post('/chat', async (req: Request, res: Response) => {
-  const { message } = req.body as ChatRequest;
+  const { message, sessionId } = req.body as ChatRequest;
 
   if (!message || typeof message !== 'string' || !message.trim()) {
     res.status(400).json({ error: 'message is required' });
@@ -53,10 +54,20 @@ app.post('/chat', async (req: Request, res: Response) => {
   }
 
   try {
-    const session = await sessionService.createSession({
-      appName: APP_NAME,
-      userId: USER_ID,
-    });
+    // Reuse an existing session (keeps context across turns) or create a new one.
+    let session =
+      sessionId
+        ? await sessionService
+            .getSession({ appName: APP_NAME, userId: USER_ID, sessionId })
+            .catch(() => null)
+        : null;
+
+    if (!session) {
+      session = await sessionService.createSession({
+        appName: APP_NAME,
+        userId: USER_ID,
+      });
+    }
 
     const userMessage: Content = {
       role: 'user',
