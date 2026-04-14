@@ -119,6 +119,10 @@ log "Installing store backend dependencies..."
 npm install
 ok "Store backend dependencies installed"
 
+log "Building store backend..."
+npm run build
+ok "Store backend built"
+
 log "Installing agent service dependencies..."
 (cd agent && npm install)
 ok "Agent service dependencies installed"

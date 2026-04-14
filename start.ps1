@@ -15,6 +15,15 @@ function Fail { Write-Host "[start] $args" -ForegroundColor Red; exit 1 }
 $PidDir = $env:TEMP
 $PYTHON = if (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { "python" }
 
+# ── Clear any stale processes on required ports ───────────────────────────────
+foreach ($port in @(11435, 3000, 3001)) {
+    $conn = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($conn) {
+        Write-Host "[start] Port $port in use (pid $($conn.OwningProcess)) — stopping it first..." -ForegroundColor Yellow
+        Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # ── Locate llama-server ───────────────────────────────────────────────────────
 $LlamaExe = Join-Path $PSScriptRoot "bin\llama-server.exe"
 if (-not (Test-Path $LlamaExe)) { Fail "llama-server.exe not found. Run .\setup.ps1 first." }
@@ -57,9 +66,16 @@ if (-not $ready) { Fail "llama-server did not start in time. Check $llamaLog" }
 Ok "llama-server ready (pid $($llamaProc.Id))"
 
 # ── Store backend ─────────────────────────────────────────────────────────────
+if (-not (Test-Path (Join-Path $PSScriptRoot "dist"))) {
+    Log "Building store backend (first run)..."
+    Push-Location $PSScriptRoot
+    npm run build
+    Pop-Location
+    Ok "Build complete"
+}
 Log "Starting store backend on port 3000..."
 $storeLog  = Join-Path $env:TEMP "store-backend.log"
-$storeProc = Start-Process -FilePath "node" -ArgumentList "server.js" `
+$storeProc = Start-Process -FilePath "npm" -ArgumentList "start" `
     -WorkingDirectory $PSScriptRoot `
     -RedirectStandardOutput $storeLog -RedirectStandardError $storeLog `
     -PassThru -WindowStyle Hidden

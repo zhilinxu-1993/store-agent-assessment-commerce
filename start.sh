@@ -15,6 +15,7 @@ NC='\033[0m'
 
 log()  { echo -e "${BOLD}[start]${NC} $1"; }
 ok()   { echo -e "${GREEN}[start]${NC} ✓ $1"; }
+warn() { echo -e "\033[1;33m[start]${NC} ⚠ $1"; }
 fail() { echo -e "${RED}[start]${NC} ✗ $1"; exit 1; }
 
 OS="$(uname -s)"
@@ -51,6 +52,15 @@ for l in m['layers']:
 GGUF_PATH="$HOME/.ollama/models/blobs/$BLOB_HASH"
 [ -f "$GGUF_PATH" ] || fail "Model file not found at $GGUF_PATH. Run ./setup.sh first."
 
+# ── Clear any stale processes on required ports ───────────────────────────────
+for port in 11435 3000 3001; do
+  pid=$(lsof -ti ":$port" 2>/dev/null) || true
+  if [ -n "$pid" ]; then
+    warn "Port $port in use (pid $pid) — stopping it first..."
+    kill -9 $pid 2>/dev/null || true
+  fi
+done
+
 # ── llama-server ─────────────────────────────────────────────────────────────
 log "Starting llama-server on port 11435..."
 "$LLAMA_SERVER_BIN" \
@@ -72,8 +82,13 @@ for i in $(seq 1 30); do
 done
 
 # ── Store backend ─────────────────────────────────────────────────────────────
+if [ ! -d dist ]; then
+  log "Building store backend (first run)..."
+  npm run build
+  ok "Build complete"
+fi
 log "Starting store backend on port 3000..."
-node server.js >/tmp/store-backend.log 2>&1 &
+npm start >/tmp/store-backend.log 2>&1 &
 STORE_PID=$!
 echo $STORE_PID > /tmp/store-backend.pid
 sleep 2

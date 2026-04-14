@@ -101,6 +101,10 @@ Log "Installing store backend dependencies..."
 npm install
 Ok "Store backend dependencies installed"
 
+Log "Building store backend..."
+npm run build
+Ok "Store backend built"
+
 Log "Installing agent service dependencies..."
 Push-Location agent
 npm install
