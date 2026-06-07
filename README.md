@@ -1,4 +1,5 @@
 https://docs.google.com/document/d/1zhwsjoetidDUNvl41DuIFFWTwGeyahFa0RqiDYlfwGE/edit?tab=t.0
+https://drive.google.com/file/d/1sZdRmPqDHB-5rByzyTqAODTJxKfGPMbc/view?usp=sharing
 
 # Store Admin Agent — Implementation
 
