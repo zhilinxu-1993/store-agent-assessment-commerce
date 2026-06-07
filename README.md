@@ -1,6 +1,5 @@
-https://docs.google.com/document/d/1zhwsjoetidDUNvl41DuIFFWTwGeyahFa0RqiDYlfwGE/edit?tab=t.0
-https://drive.google.com/file/d/1sZdRmPqDHB-5rByzyTqAODTJxKfGPMbc/view?usp=sharing
 
+https://docs.google.com/document/d/1AjqZLN_DYErfOleLAvr6mKPP57DIhNqU3SkfNSlv0hc/edit?tab=t.0
 # Store Admin Agent — Implementation
 
 A natural-language AI assistant embedded in an e-commerce admin dashboard. The agent interprets plain-English requests and executes order and product management operations via the store's REST API.
